@@ -1,54 +1,48 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <title>ClearKey Hex to JSON Converter</title>
+    <meta charset="UTF-8">
+    <title>ClearKey JSON API</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; background: #f4f4f4; }
-        textarea { width: 100%; height: 80px; margin-bottom: 10px; }
-        pre { background: #222; color: #0f0; padding: 15px; overflow-x: auto; border-radius: 5px; }
-        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        body { font-family: monospace; background: #121212; color: #00ff00; padding: 20px; word-wrap: break-word; }
+        pre { white-space: pre-wrap; }
     </style>
 </head>
 <body>
-    <h2>ClearKey Hex to JSON</h2>
-    
-    <label>Key ID (Hex):</label>
-    <input type="text" id="kid" style="width:100%" placeholder="Contoh: 0123456789abcdef0123456789abcdef">
-    
-    <br><br>
-    
-    <label>Key (Hex):</label>
-    <input type="text" id="key" style="width:100%" placeholder="Contoh: fedcba9876543210fedcba9876543210">
-    
-    <br><br>
-    <button onclick="convert()">Generate JSON</button>
-
-    <h3>Hasil JSON:</h3>
-    <pre id="output">Hasil akan muncul di sini...</pre>
+    <pre id="json-output">Memproses data...</pre>
 
     <script>
         function hexToBase64Url(hex) {
-            // Tukar Hex ke Byte Array
-            let bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-            // Tukar ke Base64
-            let base64 = btoa(String.fromCharCode.apply(null, bytes));
-            // Tukar ke Base64URL (buang =, tukar + dan /)
-            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            try {
+                let bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                let base64 = btoa(String.fromCharCode.apply(null, bytes));
+                return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            } catch (e) {
+                return null;
+            }
         }
 
-        function convert() {
-            const kidHex = document.getElementById('kid').value.trim();
-            const keyHex = document.getElementById('key').value.trim();
+        function process() {
+            // Ambil data dari URL (?keyid=XXX&key=YYY)
+            const params = new URLSearchParams(window.location.search);
+            const kidHex = params.get('keyid');
+            const keyHex = params.get('key');
 
-            if (kidHex.length < 32 || keyHex.length < 32) {
-                alert("Sila masukkan format Hex yang betul (32 aksara)!");
+            if (!kidHex || !keyHex) {
+                document.getElementById('json-output').textContent = 
+                    'Error: Sila gunakan format URL:\n?keyid=HEX_KID&key=HEX_KEY';
                 return;
             }
 
             const kidB64 = hexToBase64Url(kidHex);
             const keyB64 = hexToBase64Url(keyHex);
 
-            const jsonOutput = {
+            if (!kidB64 || !keyB64) {
+                document.getElementById('json-output').textContent = 'Error: Format Hex tidak sah!';
+                return;
+            }
+
+            const output = {
                 "keys": [
                     {
                         "kty": "oct",
@@ -59,8 +53,11 @@
                 "type": "temporary"
             };
 
-            document.getElementById('output').textContent = JSON.stringify(jsonOutput, null, 2);
+            // Paparkan JSON bersih seperti hasil API
+            document.getElementById('json-output').textContent = JSON.stringify(output, null, 2);
         }
+
+        process();
     </script>
 </body>
 </html>
