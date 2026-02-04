@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClearKey API</title>
+</head>
+<body style="margin:0; padding:10px; background:#000; color:#0f0; font-family:monospace;">
+    <pre id="output">Memproses...</pre>
+
+    <script>
+        function hexToBase64Url(hex) {
+            try {
+                // Buang ruang kosong jika ada
+                hex = hex.replace(/\s+/g, '');
+                let bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                let base64 = btoa(String.fromCharCode.apply(null, bytes));
+                // Format Base64URL: Tukar + ke -, / ke _, dan buang =
+                return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function init() {
+            const params = new URLSearchParams(window.location.search);
+            const kidHex = params.get('keyid');
+            const keyHex = params.get('key');
+            const outputElement = document.getElementById('output');
+
+            if (!kidHex || !keyHex) {
+                outputElement.textContent = JSON.stringify({
+                    "error": "Parameter tidak lengkap",
+                    "format_diperlukan": "?keyid=HEX_ID&key=HEX_KEY"
+                }, null, 2);
+                return;
+            }
+
+            const kidB64 = hexToBase64Url(kidHex);
+            const keyB64 = hexToBase64Url(keyHex);
+
+            if (!kidB64 || !keyB64) {
+                outputElement.textContent = JSON.stringify({
+                    "error": "Format Hex tidak sah!"
+                }, null, 2);
+                return;
+            }
+
+            const response = {
+                "keys": [
+                    {
+                        "kty": "oct",
+                        "kid": kidB64,
+                        "k": keyB64
+                    }
+                ],
+                "type": "temporary"
+            };
+
+            // Paparkan JSON bersih
+            outputElement.textContent = JSON.stringify(response, null, 2);
+            
+            // Opsional: Untuk sesetengah web player, kita paksa content-type jadi JSON
+            // (Walaupun GitHub Pages akan sentiasa hantar text/html)
+        }
+
+        init();
+    </script>
+</body>
+</html>
